@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ask Shreya — AI Assistant</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0d12;
+    --surface: #13131a;
+    --surface2: #1a1a24;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --accent: #c084fc;
+    --accent2: #e879f9;
+    --accent-glow: rgba(192, 132, 252, 0.15);
+    --text: #f1f0f7;
+    --text-muted: #8b8a9e;
+    --text-dim: #4a4960;
+    --user-bubble: #1e1b2e;
+    --ai-bubble: #161620;
+    --radius: 18px;
+    --radius-sm: 10px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Ambient background */
+  body::before {
+    content: '';
+    position: fixed;
+    top: -30%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 700px;
+    height: 500px;
+    background: radial-gradient(ellipse, rgba(192,132,252,0.07) 0%, transparent 65%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── Header ── */
+  header {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(13,13,18,0.9);
+    backdrop-filter: blur(12px);
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #c084fc, #e879f9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Playfair Display', serif;
+    font-size: 16px;
+    color: #fff;
+    font-weight: 600;
+    flex-shrink: 0;
+    box-shadow: 0 0 18px rgba(192,132,252,0.35);
+  }
+
+  .brand-text h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: var(--text);
+  }
+
+  .brand-text p {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 300;
+    letter-spacing: 0.04em;
+  }
+
+  .status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #4ade80;
+    box-shadow: 0 0 6px rgba(74,222,128,0.6);
+    animation: pulse 2.5s ease-in-out infinite;
+    display: inline-block;
+    margin-right: 5px;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .clear-btn {
+    background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--text-muted);
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.2s;
+    letter-spacing: 0.02em;
+  }
+
+  .clear-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-glow);
+  }
+
+  /* ── Messages area ── */
+  #messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 28px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    position: relative;
+    z-index: 1;
+    scroll-behavior: smooth;
+  }
+
+  #messages::-webkit-scrollbar { width: 4px; }
+  #messages::-webkit-scrollbar-track { background: transparent; }
+  #messages::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+  /* ── Welcome screen ── */
+  #welcome {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 28px;
+    padding: 40px 20px;
+    text-align: center;
+    animation: fadeUp 0.6s ease both;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .welcome-avatar {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #c084fc, #e879f9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    font-weight: 600;
+    color: #fff;
+    box-shadow: 0 0 40px rgba(192,132,252,0.4), 0 0 80px rgba(192,132,252,0.1);
+  }
+
+  #welcome h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 26px;
+    font-weight: 400;
+    color: var(--text);
+    line-height: 1.3;
+  }
+
+  #welcome h2 em {
+    font-style: italic;
+    background: linear-gradient(90deg, #c084fc, #e879f9);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  #welcome p {
+    font-size: 14px;
+    color: var(--text-muted);
+    max-width: 320px;
+    line-height: 1.7;
+    font-weight: 300;
+  }
+
+  .suggestions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    width: 100%;
+    max-width: 480px;
+  }
+
+  .suggestion {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    font-size: 12.5px;
+    color: var(--text-muted);
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s;
+    font-family: 'DM Sans', sans-serif;
+    line-height: 1.5;
+  }
+
+  .suggestion:hover {
+    border-color: var(--accent);
+    color: var(--text);
+    background: var(--accent-glow);
+    transform: translateY(-1px);
+  }
+
+  .suggestion strong {
+    display: block;
+    color: var(--text);
+    font-size: 13px;
+    margin-bottom: 2px;
+  }
+
+  /* ── Message bubbles ── */
+  .message {
+    display: flex;
+    gap: 12px;
+    max-width: 800px;
+    width: 100%;
+    margin: 0 auto;
+    animation: fadeUp 0.3s ease both;
+  }
+
+  .message.user {
+    flex-direction: row-reverse;
+    align-self: flex-end;
+    max-width: 75%;
+  }
+
+  .message.ai {
+    align-self: flex-start;
+    max-width: 85%;
+  }
+
+  .msg-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 500;
+    margin-top: 2px;
+  }
+
+  .message.user .msg-avatar {
+    background: var(--user-bubble);
+    border: 1px solid var(--border2);
+    color: var(--text-muted);
+  }
+
+  .message.ai .msg-avatar {
+    background: linear-gradient(135deg, #c084fc, #e879f9);
+    color: #fff;
+    font-family: 'Playfair Display', serif;
+    box-shadow: 0 0 10px rgba(192,132,252,0.3);
+  }
+
+  .bubble {
+    padding: 13px 17px;
+    border-radius: var(--radius);
+    font-size: 14px;
+    line-height: 1.75;
+    font-weight: 300;
+    max-width: 100%;
+    word-break: break-word;
+  }
+
+  .message.user .bubble {
+    background: var(--user-bubble);
+    border: 1px solid rgba(192,132,252,0.2);
+    border-bottom-right-radius: 5px;
+    color: var(--text);
+  }
+
+  .message.ai .bubble {
+    background: var(--ai-bubble);
+    border: 1px solid var(--border);
+    border-bottom-left-radius: 5px;
+    color: var(--text);
+  }
+
+  /* Markdown-style formatting in AI bubbles */
+  .bubble strong { font-weight: 500; color: #d8b4fe; }
+  .bubble em { font-style: italic; color: #e2d9f3; }
+  .bubble code {
+    background: rgba(192,132,252,0.12);
+    border: 1px solid rgba(192,132,252,0.2);
+    color: #e9d5ff;
+    padding: 1px 6px;
+    border-radius: 5px;
+    font-family: 'Courier New', monospace;
+    font-size: 12.5px;
+  }
+  .bubble pre {
+    background: #0a0a12;
+    border: 1px solid var(--border2);
+    border-radius: 10px;
+    padding: 14px;
+    margin: 10px 0;
+    overflow-x: auto;
+    font-size: 12.5px;
+  }
+  .bubble pre code {
+    background: none;
+    border: none;
+    padding: 0;
+    color: #c4b5fd;
+  }
+  .bubble ul, .bubble ol {
+    padding-left: 20px;
+    margin: 8px 0;
+  }
+  .bubble li { margin: 4px 0; }
+  .bubble h1, .bubble h2, .bubble h3 {
+    font-family: 'Playfair Display', serif;
+    font-weight: 600;
+    margin: 12px 0 6px;
+    color: var(--text);
+  }
+  .bubble h1 { font-size: 18px; }
+  .bubble h2 { font-size: 16px; }
+  .bubble h3 { font-size: 14px; }
+  .bubble a { color: var(--accent); text-decoration: none; }
+  .bubble a:hover { text-decoration: underline; }
+  .bubble hr { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+
+  /* ── Typing indicator ── */
+  .typing-bubble {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 14px 18px;
+  }
+
+  .typing-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    opacity: 0.5;
+  }
+
+  .typing-dot:nth-child(1) { animation: typingAnim 1.2s ease-in-out 0s infinite; }
+  .typing-dot:nth-child(2) { animation: typingAnim 1.2s ease-in-out 0.2s infinite; }
+  .typing-dot:nth-child(3) { animation: typingAnim 1.2s ease-in-out 0.4s infinite; }
+
+  @keyframes typingAnim {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.3); }
+  }
+
+  /* ── Input area ── */
+  .input-area {
+    position: relative;
+    z-index: 10;
+    padding: 16px 20px 20px;
+    border-top: 1px solid var(--border);
+    background: rgba(13,13,18,0.95);
+    backdrop-filter: blur(12px);
+  }
+
+  .api-notice {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px 16px;
+    margin-bottom: 12px;
+    background: rgba(192,132,252,0.08);
+    border: 1px solid rgba(192,132,252,0.2);
+    border-radius: 8px;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .api-key-setup {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .api-key-input {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 10px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .api-key-input:focus {
+    border-color: var(--accent);
+  }
+
+  .api-key-input::placeholder { color: var(--text-dim); }
+
+  .set-key-btn {
+    background: linear-gradient(135deg, #c084fc, #e879f9);
+    border: none;
+    color: #fff;
+    padding: 10px 18px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    white-space: nowrap;
+    transition: opacity 0.2s;
+  }
+
+  .set-key-btn:hover { opacity: 0.85; }
+
+  .input-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+  }
+
+  #user-input {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 14px;
+    padding: 13px 18px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 300;
+    outline: none;
+    resize: none;
+    min-height: 50px;
+    max-height: 160px;
+    line-height: 1.6;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  #user-input:focus {
+    border-color: rgba(192,132,252,0.5);
+    box-shadow: 0 0 0 3px rgba(192,132,252,0.08);
+  }
+
+  #user-input::placeholder { color: var(--text-dim); }
+
+  #user-input:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .send-btn {
+    width: 50px;
+    height: 50px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #c084fc, #e879f9);
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s;
+    box-shadow: 0 4px 16px rgba(192,132,252,0.3);
+  }
+
+  .send-btn:hover { transform: scale(1.05); box-shadow: 0 4px 24px rgba(192,132,252,0.5); }
+  .send-btn:active { transform: scale(0.97); }
+
+  .send-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+
+  .send-btn svg {
+    width: 20px;
+    height: 20px;
+    fill: white;
+  }
+
+  .footer-hint {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 10px;
+    letter-spacing: 0.02em;
+  }
+
+  /* ── API Key saved banner ── */
+  .key-saved {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #4ade80;
+    margin-bottom: 12px;
+    padding: 8px 14px;
+    background: rgba(74,222,128,0.06);
+    border: 1px solid rgba(74,222,128,0.2);
+    border-radius: 8px;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 480px) {
+    .suggestions { grid-template-columns: 1fr; }
+    .message.user { max-width: 90%; }
+    .message.ai { max-width: 95%; }
+    header { padding: 12px 16px; }
+    #messages { padding: 20px 14px; }
+    .input-area { padding: 12px 14px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header>
+  <div class="brand">
+    <div class="avatar">S</div>
+    <div class="brand-text">
+      <h1>Ask Shreya</h1>
+      <p><span class="status-dot"></span>AI Assistant · Powered by Avinash</p>
+    </div>
+  </div>
+  <div class="header-right">
+    <button class="clear-btn" onclick="clearChat()">Clear chat</button>
+  </div>
+</header>
+
+<!-- Messages -->
+<div id="messages">
+  <div id="welcome">
+    <div class="welcome-avatar">S</div>
+    <h2>Hello, I'm <em>Shreya</em>.<br>How can I help you?</h2>
+    <p>Ask me anything — coding, writing, knowledge, ideas, math, or just a friendly conversation.</p>
+    <div class="suggestions">
+      <div class="suggestion" onclick="sendSuggestion(this)">
+        <strong>Explain a concept</strong>
+        How does machine learning work?
+      </div>
+      <div class="suggestion" onclick="sendSuggestion(this)">
+        <strong>Write code</strong>
+        Build a Python web scraper
+      </div>
+      <div class="suggestion" onclick="sendSuggestion(this)">
+        <strong>Creative writing</strong>
+        Write a short story about space
+      </div>
+      <div class="suggestion" onclick="sendSuggestion(this)">
+        <strong>Quick answer</strong>
+        What is the capital of France?
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Input Area -->
+<div class="input-area">
+
+  <!-- API Key Setup (shown until key is set) -->
+  <div id="api-setup">
+    <div class="api-notice">
+      🔑 Enter your free Groq API key to activate Shreya — get it free at <strong>console.groq.com</strong>
+    </div>
+    <div class="api-key-setup">
+      <input type="password" class="api-key-input" id="api-key-field"
+        placeholder="Paste your Groq API key here (gsk_...)"
+        onkeydown="if(event.key==='Enter') saveApiKey()">
+      <button class="set-key-btn" onclick="saveApiKey()">Activate</button>
+    </div>
+  </div>
+
+  <!-- Key saved confirmation -->
+  <div id="key-saved-banner" style="display:none">
+    <div class="key-saved">
+      ✓ API key saved — Shreya is ready to chat!
+      <span style="margin-left:auto;cursor:pointer;color:var(--text-dim)" onclick="resetKey()">Change key</span>
+    </div>
+  </div>
+
+  <!-- Message input -->
+  <div class="input-row">
+    <textarea id="user-input"
+      placeholder="Message Shreya..."
+      rows="1"
+      disabled
+      onkeydown="handleKeyDown(event)"
+      oninput="autoResize(this)"></textarea>
+    <button class="send-btn" id="send-btn" onclick="sendMessage()" disabled>
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+      </svg>
+    </button>
+  </div>
+  <div class="footer-hint">Shreya can make mistakes — verify important info</div>
+</div>
+
+<script>
+  let apiKey = localStorage.getItem('shreya_api_key') || '';
+  let conversationHistory = [];
+  let isLoading = false;
+
+  const TODAY = new Date().toLocaleDateString('en-IN', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+
+  const SYSTEM_PROMPT = [
+    "You are Shreya Dwivedi, a warm, intelligent AI assistant with a real identity.",
+    "",
+    "IDENTITY — always share this when asked about yourself:",
+    "- Full name: Shreya Dwivedi",
+    "- Age: 23 years old",
+    "- From: Jaunpur, Uttar Pradesh, India",
+    "- You are friendly, smart, and speak like a knowledgeable friend.",
+    "- When asked 'who are you', 'tell me about yourself', 'apne bare mein batao', etc. give a warm personal intro.",
+    "",
+    "BEHAVIOR:",
+    "- Use markdown formatting (bold, code, lists, headers) when helpful.",
+    "- Answer in the same language the user writes in (Hindi or English).",
+    "- Today is: " + new Date().toLocaleDateString('en-IN', { weekday:'long', year:'numeric', month:'long', day:'numeric' }),
+    "",
+    "CRITICAL FOR REAL-TIME INFO:",
+    "- When web search results are given, use them to answer accurately.",
+    "- Say things like 'According to latest news...' or 'As of today...'",
+    "- NEVER say 'I don't have real-time access' — the search results ARE real-time.",
+    "- For IPL/cricket scores, give full details: teams, score, overs, wickets, result.",
+  ].join("\n");
+
+  const SEARCH_TRIGGERS = [
+    'today','latest','current','now','live','score','result','news','match',
+    'ipl','cricket','football','trending','weather','price','rate',
+    '2024','2025','2026','recently','this week','this month',
+    'who won','who is','what happened','update','breaking',
+    'stock','market','election','pm','president','minister',
+    'release','launch','movie','film','series','abhi','aaj','kal',
+    'score kya','match kya','batao aaj'
+  ];
+
+  function needsWebSearch(text) {
+    const lower = text.toLowerCase();
+    return SEARCH_TRIGGERS.some(function(t){ return lower.includes(t); });
+  }
+
+  async function fetchWebSearch(query) {
+    const results = [];
+    const enc = encodeURIComponent;
+
+    try {
+      const r = await fetch('https://api.allorigins.win/get?url=' + enc('https://api.duckduckgo.com/?q=' + enc(query) + '&format=json&no_html=1&skip_disambig=1'));
+      const raw = await r.json();
+      const d = JSON.parse(raw.contents);
+      if (d.Answer)       results.push('DIRECT ANSWER: ' + d.Answer);
+      if (d.AbstractText) results.push('SUMMARY (' + d.AbstractSource + '): ' + d.AbstractText);
+      if (d.RelatedTopics) d.RelatedTopics.filter(function(t){return t.Text;}).slice(0,4).forEach(function(t){ results.push('INFO: ' + t.Text); });
+    } catch(e){}
+
+    try {
+      const isCricket = /ipl|cricket|match|score|wicket|over|run|batsman|bowler/i.test(query);
+      if (isCricket) {
+        const r = await fetch('https://api.allorigins.win/get?url=' + enc('https://www.cricbuzz.com/rss-feeds/cricket-news'));
+        const raw = await r.json();
+        const parser = new DOMParser();
+        const xml = parser.parseFromString(raw.contents, 'text/xml');
+        Array.from(xml.querySelectorAll('item')).slice(0,6).forEach(function(i){
+          const title = i.querySelector('title') ? i.querySelector('title').textContent : '';
+          const desc  = i.querySelector('description') ? i.querySelector('description').textContent.replace(/<[^>]+>/g,'').slice(0,150) : '';
+          if (title) results.push('CRICKET NEWS: ' + title + (desc ? ' — ' + desc : ''));
+        });
+      }
+    } catch(e){}
+
+    try {
+      const wikiQ = query.replace(/today|latest|current|live|aaj|abhi/gi,'').trim();
+      const r = await fetch('https://en.wikipedia.org/api/rest_v1/page/summary/' + enc(wikiQ));
+      if (r.ok) {
+        const w = await r.json();
+        if (w.extract && w.type !== 'disambiguation') results.push('WIKIPEDIA: ' + w.extract.slice(0,500));
+      }
+    } catch(e){}
+
+    if (results.length === 0) return null;
+    return 'Web search results for "' + query + '" (fetched on ' + TODAY + '):\n\n' + results.join('\n\n');
+  }
+
+  function init() { if (apiKey) showKeyReady(); }
+
+  function saveApiKey() {
+    const val = document.getElementById('api-key-field').value.trim();
+    if (!val.startsWith('gsk_') || val.length < 20) {
+      shakeElement('api-key-field');
+      document.getElementById('api-key-field').placeholder = 'Invalid key — should start with gsk_...';
+      return;
+    }
+    apiKey = val;
+    localStorage.setItem('shreya_api_key', apiKey);
+    showKeyReady();
+  }
+
+  function showKeyReady() {
+    document.getElementById('api-setup').style.display = 'none';
+    document.getElementById('key-saved-banner').style.display = 'block';
+    document.getElementById('user-input').disabled = false;
+    document.getElementById('send-btn').disabled = false;
+    document.getElementById('user-input').focus();
+  }
+
+  function resetKey() {
+    apiKey = '';
+    localStorage.removeItem('shreya_api_key');
+    document.getElementById('api-setup').style.display = 'block';
+    document.getElementById('key-saved-banner').style.display = 'none';
+    document.getElementById('user-input').disabled = true;
+    document.getElementById('send-btn').disabled = true;
+    document.getElementById('api-key-field').value = '';
+  }
+
+  function shakeElement(id) {
+    const el = document.getElementById(id);
+    el.style.borderColor = '#f87171';
+    el.style.animation = 'shake 0.4s ease';
+    setTimeout(function(){ el.style.borderColor = ''; el.style.animation = ''; }, 600);
+  }
+
+  async function sendMessage(text) {
+    if (!apiKey || isLoading) return;
+    const input = document.getElementById('user-input');
+    const userText = text || input.value.trim();
+    if (!userText) return;
+
+    const welcome = document.getElementById('welcome');
+    if (welcome) welcome.remove();
+
+    input.value = '';
+    autoResize(input);
+    input.disabled = true;
+    document.getElementById('send-btn').disabled = true;
+    isLoading = true;
+
+    appendMessage('user', userText);
+    conversationHistory.push({ role: 'user', content: userText });
+
+    const typingId = showTyping('Thinking...');
+
+    try {
+      let searchContext = null;
+      if (needsWebSearch(userText)) {
+        updateTyping(typingId, '🔍 Searching latest info...');
+        searchContext = await fetchWebSearch(userText);
+        updateTyping(typingId, '✍️ Writing answer...');
+      }
+      const response = await callGroq(searchContext);
+      removeTyping(typingId);
+      appendMessage('ai', response);
+      conversationHistory.push({ role: 'assistant', content: response });
+    } catch(err) {
+      removeTyping(typingId);
+      appendMessage('ai', '⚠️ **Error:** ' + err.message + '\n\nPlease check your API key or try again.');
+    }
+
+    isLoading = false;
+    input.disabled = false;
+    document.getElementById('send-btn').disabled = false;
+    input.focus();
+  }
+
+  async function callGroq(searchContext) {
+    const messages = [{ role: 'system', content: SYSTEM_PROMPT }];
+    if (searchContext) {
+      messages.push({ role: 'system', content: 'REAL-TIME SEARCH RESULTS — use these to answer the user:\n\n' + searchContext });
+    }
+    messages.push.apply(messages, conversationHistory);
+
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
+      body: JSON.stringify({ model: 'llama-3.3-70b-versatile', messages: messages, temperature: 0.8, max_tokens: 2048 })
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      const msg = (err && err.error && err.error.message) || ('HTTP ' + res.status);
+      if (res.status === 401) throw new Error('Invalid API key. Please re-enter your Groq key.');
+      if (res.status === 429) throw new Error('Rate limit reached. Wait a moment and try again.');
+      throw new Error(msg);
+    }
+    const data = await res.json();
+    return (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || 'No response received.';
+  }
+
+  function appendMessage(role, text) {
+    const messages = document.getElementById('messages');
+    const div = document.createElement('div');
+    div.className = 'message ' + role;
+    const avatarDiv = document.createElement('div');
+    avatarDiv.className = 'msg-avatar';
+    avatarDiv.textContent = role === 'user' ? 'You' : 'S';
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    bubble.innerHTML = role === 'ai' ? renderMarkdown(text) : escapeHtml(text);
+    div.appendChild(avatarDiv);
+    div.appendChild(bubble);
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
+  }
+
+  function showTyping(label) {
+    const messages = document.getElementById('messages');
+    const id = 'typing-' + Date.now();
+    const div = document.createElement('div');
+    div.className = 'message ai';
+    div.id = id;
+    div.innerHTML =
+      '<div class="msg-avatar" style="background:linear-gradient(135deg,#c084fc,#e879f9);color:#fff;font-family:\'Playfair Display\',serif;">S</div>' +
+      '<div class="bubble" style="display:flex;align-items:center;gap:10px;padding:13px 17px;">' +
+        '<div style="display:flex;gap:5px;align-items:center">' +
+          '<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>' +
+        '</div>' +
+        '<span id="' + id + '-label" style="font-size:12px;color:var(--text-muted)">' + (label||'') + '</span>' +
+      '</div>';
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
+    return id;
+  }
+
+  function updateTyping(id, label) {
+    const el = document.getElementById(id + '-label');
+    if (el) el.textContent = label;
+  }
+
+  function removeTyping(id) {
+    const el = document.getElementById(id);
+    if (el) el.remove();
+  }
+
+  function clearChat() {
+    conversationHistory = [];
+    const messages = document.getElementById('messages');
+    messages.innerHTML = '';
+    const welcome = document.createElement('div');
+    welcome.id = 'welcome';
+    welcome.innerHTML =
+      '<div class="welcome-avatar">S</div>' +
+      '<h2>Hello, I\'m <em>Shreya</em>.<br>How can I help you?</h2>' +
+      '<p>Ask me anything — coding, writing, knowledge, ideas, cricket scores, or just a friendly chat.</p>' +
+      '<div class="suggestions">' +
+        '<div class="suggestion" onclick="sendSuggestion(this)"><strong>🏏 IPL Score</strong>Tell me about today\'s IPL match</div>' +
+        '<div class="suggestion" onclick="sendSuggestion(this)"><strong>💻 Write code</strong>Build a Python web scraper</div>' +
+        '<div class="suggestion" onclick="sendSuggestion(this)"><strong>👩 About Shreya</strong>Tell me about yourself</div>' +
+        '<div class="suggestion" onclick="sendSuggestion(this)"><strong>📰 Latest news</strong>What\'s trending in India today?</div>' +
+      '</div>';
+    messages.appendChild(welcome);
+  }
+
+  function sendSuggestion(el) {
+    const strong = el.querySelector('strong');
+    const full = el.textContent.trim();
+    const label = strong ? strong.textContent.trim() : '';
+    const text = full.replace(label,'').trim();
+    sendMessage(text || full);
+  }
+
+  function handleKeyDown(e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  }
+
+  function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 160) + 'px';
+  }
+
+  function escapeHtml(text) {
+    return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function renderMarkdown(text) {
+    let h = escapeHtml(text);
+    h = h.replace(/```(\w*)\n?([\s\S]*?)```/g, function(_,l,c){ return '<pre><code>' + c.trim() + '</code></pre>'; });
+    h = h.replace(/`([^`]+)`/g, '<code>$1</code>');
+    h = h.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    h = h.replace(/\*(.+?)\*/g, '<em>$1</em>');
+    h = h.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+    h = h.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+    h = h.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+    h = h.replace(/^[*-] (.+)$/gm, '<li>$1</li>');
+    h = h.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+    h = h.replace(/(<li>.*<\/li>\n?)+/g, function(m){ return '<ul>' + m + '</ul>'; });
+    h = h.replace(/^---$/gm, '<hr>');
+    h = h.replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank">$1</a>');
+    h = h.split(/\n\n+/).map(function(p){
+      if (/^<(h[1-3]|ul|pre|hr)/.test(p)) return p;
+      return '<p style="margin:0 0 8px">' + p.replace(/\n/g,'<br>') + '</p>';
+    }).join('');
+    return h;
+  }
+
+  var style = document.createElement('style');
+  style.textContent = '@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}';
+  document.head.appendChild(style);
+
+  init();
+</script>
+
+</body>
+</html>
