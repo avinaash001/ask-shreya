@@ -174,6 +174,27 @@ footer::before{content:'';position:absolute;top:-1px;left:0;right:0;height:1px;
 .sbtn svg{width:18px;height:18px;fill:white;}
 .fhint{text-align:center;font-size:11px;font-weight:600;color:var(--text-dim);margin-top:6px;letter-spacing:0.02em;}
 
+/* API key setup */
+#api-setup{margin-bottom:10px;}
+.api-notice{display:flex;align-items:center;justify-content:center;gap:6px;
+  padding:7px 12px;margin-bottom:8px;font-size:12px;font-weight:500;color:var(--text-muted);
+  background:rgba(185,122,255,0.08);border:1px solid rgba(185,122,255,0.2);border-radius:8px;}
+.api-row{display:flex;gap:7px;}
+.api-input{flex:1;background:var(--surface2);border:1px solid var(--border2);border-radius:10px;
+  padding:9px 13px;color:var(--text);font-family:'Inter',sans-serif;font-size:13px;font-weight:500;
+  outline:none;transition:border-color 0.2s;}
+.api-input:focus{border-color:rgba(185,122,255,0.55);}
+.api-input::placeholder{color:var(--text-dim);font-weight:400;}
+.api-set-btn{background:linear-gradient(135deg,#b97aff,#d946ef);border:none;color:#fff;
+  padding:9px 16px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;
+  font-family:'Inter',sans-serif;white-space:nowrap;transition:opacity 0.2s;}
+.api-set-btn:hover{opacity:0.85;}
+#key-saved{display:none;align-items:center;gap:7px;padding:7px 12px;margin-bottom:8px;
+  font-size:12px;font-weight:600;color:#4ade80;
+  background:rgba(74,222,128,0.07);border:1px solid rgba(74,222,128,0.2);border-radius:8px;}
+#key-saved span{margin-left:auto;cursor:pointer;color:var(--text-dim);font-weight:400;font-size:11px;}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-5px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)}}
+
 /* ── History Panel ── */
 #histpanel{position:fixed;inset:0;z-index:200;display:none;flex-direction:column;background:var(--bg);}
 #histpanel.open{display:flex;}
@@ -221,6 +242,19 @@ footer::before{content:'';position:absolute;top:-1px;left:0;right:0;height:1px;
   </div>
 
   <footer>
+    <!-- API Key Setup -->
+    <div id="api-setup">
+      <div class="api-notice">🔑 Enter your free Groq API key to activate Shreya — get it at <strong>console.groq.com</strong></div>
+      <div class="api-row">
+        <input type="password" class="api-input" id="api-key-field" placeholder="Paste Groq API key (gsk_...)" onkeydown="if(event.key==='Enter') saveKey()">
+        <button class="api-set-btn" onclick="saveKey()">Activate</button>
+      </div>
+    </div>
+    <!-- Key saved banner -->
+    <div id="key-saved">
+      <span>✓ Shreya is ready!</span>
+      <span onclick="resetKey()">Change key</span>
+    </div>
     <div id="imgprev-wrap">
       <img id="imgprev" src="" alt="">
       <button class="rmbtn" onclick="removeImg()">✕</button>
@@ -232,14 +266,14 @@ footer::before{content:'';position:absolute;top:-1px;left:0;right:0;height:1px;
         <input type="file" id="imginput" accept="image/*" style="display:none" onchange="onImgSelect(event)">
       </div>
       <div class="twrap">
-        <textarea id="inp" placeholder="Message Shreya..." rows="1"
+        <textarea id="inp" placeholder="Message Shreya..." rows="1" disabled
           oninput="autoH(this)" onkeydown="onKey(event)"></textarea>
       </div>
-      <button class="sbtn" id="sbtn" onclick="send()">
+      <button class="sbtn" id="sbtn" onclick="send()" disabled>
         <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
       </button>
     </div>
-    <div class="fhint">Ask Shreya · AI Assistant · Powered by Avinash</div>
+    <div class="fhint">Ask Shreya · AI Assistant · Powered by Avinash ❤️</div>
   </footer>
 </div>
 
@@ -257,9 +291,8 @@ footer::before{content:'';position:absolute;top:-1px;left:0;right:0;height:1px;
 
 <script>
 // ════════════════════════════════════════════════
-// ⚙️  PASTE YOUR GROQ API KEY BELOW (starts with gsk_)
-const API_KEY = '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';
-// ════════════════════════════════════════════════
+// API key is saved by user at runtime (stored in localStorage)
+let API_KEY = localStorage.getItem('shreya_api_key') || '';
 
 const TODAY = new Date().toLocaleDateString('en-IN',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
 
@@ -303,6 +336,7 @@ try { chats = JSON.parse(localStorage.getItem('sc') || '[]'); } catch(e){ chats 
 
 // ── Init ──
 window.addEventListener('load', () => {
+  if (API_KEY) showKeyReady(); else showKeySetup();
   showWelcome();
   initVoice();
   initKeyboardFix();
@@ -337,6 +371,43 @@ function initKeyboardFix() {
       prevH = window.visualViewport.height;
     });
   }
+}
+
+function saveKey() {
+  const val = document.getElementById('api-key-field').value.trim();
+  if (!val.startsWith('gsk_') || val.length < 20) {
+    const el = document.getElementById('api-key-field');
+    el.style.borderColor = '#f87171';
+    el.style.animation = 'shake 0.4s ease';
+    el.placeholder = 'Invalid key — must start with gsk_...';
+    setTimeout(() => { el.style.borderColor = ''; el.style.animation = ''; }, 600);
+    return;
+  }
+  API_KEY = val;
+  localStorage.setItem('shreya_api_key', API_KEY);
+  showKeyReady();
+}
+
+function showKeyReady() {
+  document.getElementById('api-setup').style.display = 'none';
+  const banner = document.getElementById('key-saved');
+  banner.style.display = 'flex';
+  document.getElementById('inp').disabled = false;
+  document.getElementById('sbtn').disabled = false;
+}
+
+function showKeySetup() {
+  document.getElementById('api-setup').style.display = 'block';
+  document.getElementById('key-saved').style.display = 'none';
+  document.getElementById('inp').disabled = true;
+  document.getElementById('sbtn').disabled = true;
+}
+
+function resetKey() {
+  API_KEY = '';
+  localStorage.removeItem('shreya_api_key');
+  document.getElementById('api-key-field').value = '';
+  showKeySetup();
 }
 
 function showWelcome() {
@@ -484,10 +555,11 @@ async function send(override) {
 }
 
 async function callGroq(ctx, hasImg) {
-  if (!API_KEY || API_KEY === 'YOUR_GROQ_API_KEY_HERE') {
-    throw new Error('API key not configured! Open the HTML file and paste your gsk_... key.');
+  if (!API_KEY || !API_KEY.startsWith('gsk_')) {
+    throw new Error('API key not set. Please enter your Groq API key first.');
   }
-  const model = hasImg ? 'llama-3.2-11b-vision-preview' : 'llama-3.3-70b-versatile';
+  // llama-3.2-11b-vision-preview is decommissioned — use meta-llama/llama-4-scout-17b-16e-instruct for vision
+  const model = hasImg ? 'meta-llama/llama-4-scout-17b-16e-instruct' : 'llama-3.3-70b-versatile';
   const messages = [{role:'system', content: SYS}];
   if (ctx) messages.push({role:'system', content: 'REAL-TIME SEARCH RESULTS — use these:\n\n' + ctx});
   messages.push(...hist);
